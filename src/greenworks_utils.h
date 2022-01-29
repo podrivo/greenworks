@@ -23,6 +23,10 @@ bool UpdateFileLastUpdatedTime(const char* file_path, time_t time);
 
 int64 GetFileLastUpdatedTime(const char* file_path);
 
+std::string uint16ToString(uint16 value);
+
+std::string uint32ToString(uint32 value);
+
 std::string uint64ToString(uint64 value);
 
 uint64 strToUint64(std::string);

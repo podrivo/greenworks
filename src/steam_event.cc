@@ -190,26 +190,17 @@ void SteamEvent::OnGameLobbyJoinRequested(uint64 SteamIdLobby, uint64 SteamIdUse
       Nan::New(persistent_steam_events_), "on", 3, argv);
 }
 
-void SteamEvent::OnGameRichPresenceJoinRequested(uint64 steamIDFriend, std::string rgchConnect) {
+void SteamEvent::OnItemDownloaded(AppId_t app_id, PublishedFileId_t file_id, bool result) {
   Nan::HandleScope scope;
   v8::Local<v8::Value> argv[] = {
-    Nan::New("rich-presence-join-requested").ToLocalChecked(),
-    Nan::New(utils::uint64ToString(steamIDFriend)).ToLocalChecked(),
-    Nan::New(rgchConnect).ToLocalChecked()
+      Nan::New("item-downloaded").ToLocalChecked(),
+      Nan::New(app_id),
+      Nan::New(utils::uint64ToString(file_id)).ToLocalChecked(),
+      Nan::New(result),
   };
-  Nan::AsyncResource ar("greenworks:SteamEvent.OnGameRichPresenceJoinRequested");
+  Nan::AsyncResource ar("greenworks:SteamEvent.OnItemDownloaded");
   ar.runInAsyncScope(
-    Nan::New(persistent_steam_events_), "on", 3, argv);
-}
-
-void SteamEvent::OnNewUrlLaunchParameters() {
-  Nan::HandleScope scope;
-  v8::Local<v8::Value> argv[] = {
-    Nan::New("new-url-launch-parameters").ToLocalChecked()
-  };
-  Nan::AsyncResource ar("greenworks:SteamEvent.OnNewUrlLaunchParameters");
-  ar.runInAsyncScope(
-    Nan::New(persistent_steam_events_), "on", 1, argv);
+      Nan::New(persistent_steam_events_), "on", 4, argv);
 }
 
 }  // namespace greenworks

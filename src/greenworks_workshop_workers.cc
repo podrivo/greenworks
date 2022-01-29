@@ -333,6 +333,29 @@ void QueryUserUGCWorker::Execute() {
   WaitForCompleted();
 }
 
+QueryUGCDetailsWorker::QueryUGCDetailsWorker(
+    Nan::Callback* success_callback, Nan::Callback* error_callback, EUGCMatchingUGCType ugc_matching_type,
+    const std::vector<UGCHandle_t>& published_files)
+    : QueryUGCWorker(success_callback, error_callback, ugc_matching_type, 0, 1),
+    published_files_(published_files) {}
+
+void QueryUGCDetailsWorker::Execute() {
+  PublishedFileId_t * pvecPublishedFileID = new PublishedFileId_t[published_files_.size()];
+  for (size_t i = 0; i < published_files_.size(); ++i) {
+    pvecPublishedFileID[i] = published_files_[i];
+  }
+  UGCQueryHandle_t ugc_handle = SteamUGC()->CreateQueryUGCDetailsRequest(
+      pvecPublishedFileID,
+      published_files_.size()
+  );
+  SteamAPICall_t ugc_query_result = SteamUGC()->SendQueryUGCRequest(ugc_handle);
+  ugc_query_call_result_.Set(ugc_query_result, this,
+      &QueryUGCDetailsWorker::OnUGCQueryCompleted);
+
+  // Wait for query all ugc completed.
+  WaitForCompleted();
+}
+
 DownloadItemWorker::DownloadItemWorker(Nan::Callback* success_callback,
     Nan::Callback* error_callback, UGCHandle_t download_file_handle,
     const std::string& download_dir)
@@ -522,6 +545,53 @@ void UnsubscribePublishedFileWorker::Execute() {
 void UnsubscribePublishedFileWorker::OnUnsubscribeCompleted(
     RemoteStoragePublishedFileUnsubscribed_t* result, bool io_failure) {
   is_completed_ = true;
+}
+
+// IMPLEMENT SUBSCRIBE METHOD
+SubscribePublishedFileWorker::SubscribePublishedFileWorker(
+    Nan::Callback* success_callback, Nan::Callback* error_callback,
+    PublishedFileId_t subscribe_file_id)
+        :SteamCallbackAsyncWorker(success_callback, error_callback),
+         subscribe_file_id_(subscribe_file_id) {
+}
+
+void SubscribePublishedFileWorker::Execute() {
+  SteamAPICall_t subscribed_result =
+      SteamRemoteStorage()->SubscribePublishedFile(subscribe_file_id_);
+  subscribe_call_result_.Set(subscribed_result, this,
+      &SubscribePublishedFileWorker::OnSubscribeCompleted);
+
+  // Wait for subscribing job completed.
+  WaitForCompleted();
+}
+
+void SubscribePublishedFileWorker::OnSubscribeCompleted(
+    RemoteStoragePublishedFileSubscribed_t* result, bool io_failure) {
+  is_completed_ = true;
+}
+
+// IMPLEMENT GetDownloadInfo METHOD
+GetDownloadInfoWorker::GetDownloadInfoWorker(Nan::Callback* success_callback,
+      Nan::Callback* error_callback,
+      PublishedFileId_t published_file_id):SteamAsyncWorker(success_callback,
+          error_callback), bytes_downloaded_(-1), bytes_total_(-1),
+         published_file_id_(published_file_id) {
+}
+
+void GetDownloadInfoWorker::Execute() {
+  if (!SteamUGC()->GetItemDownloadInfo(published_file_id_, &bytes_downloaded_, &bytes_total_)) {
+    SetErrorMessage("Error on getting download info.");
+    return;
+  }
+}
+
+void GetDownloadInfoWorker::HandleOKCallback() {
+  Nan::HandleScope scope;
+  v8::Local<v8::Value> argv[] = {
+      Nan::New(utils::uint64ToString(bytes_downloaded_)).ToLocalChecked(),
+      Nan::New(utils::uint64ToString(bytes_total_)).ToLocalChecked()};
+  Nan::AsyncResource resource("greenworks:GetDownloadInfoWorker.HandleOKCallback");
+  callback->Call(2, argv, &resource);
 }
 
 }  // namespace greenworks

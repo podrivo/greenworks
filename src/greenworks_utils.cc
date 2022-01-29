@@ -66,6 +66,18 @@ int64 GetFileLastUpdatedTime(const char* file_path) {
   return st.st_mtime;
 }
 
+std::string uint16ToString(uint16 value) {
+  std::ostringstream sout;
+  sout << value;
+  return sout.str();
+}
+
+std::string uint32ToString(uint32 value) {
+  std::ostringstream sout;
+  sout << value;
+  return sout.str();
+}
+
 std::string uint64ToString(uint64 value) {
   std::ostringstream sout;
   sout << value;

@@ -36,6 +36,7 @@ v8::Local<v8::Object> SteamID::Create(CSteamID steam_id) {
   SetPrototypeMethod(tpl, "getNickname", GetNickname);
   SetPrototypeMethod(tpl, "getRelationship", GetRelationship);
   SetPrototypeMethod(tpl, "getSteamLevel", GetSteamLevel);
+  SetPrototypeMethod(tpl, "getGamePlayed", GetGamePlayed);
 
   auto* obj = new SteamID(steam_id);
   v8::Local<v8::Object> instance =
@@ -162,6 +163,20 @@ NAN_METHOD(SteamID::GetSteamLevel) {
   auto* obj = ObjectWrap::Unwrap<SteamID>(info.Holder());
   info.GetReturnValue().Set(
       Nan::New(SteamFriends()->GetFriendSteamLevel(obj->steam_id_)));
+}
+
+NAN_METHOD(SteamID::GetGamePlayed) {
+  FriendGameInfo_t friendgameinfo;
+  auto* obj = ObjectWrap::Unwrap<SteamID>(info.Holder());
+  SteamFriends()->GetFriendGamePlayed(obj->steam_id_, &friendgameinfo);
+
+  v8::Local<v8::Object> result = Nan::New<v8::Object>();
+  Nan::Set(result, Nan::New("appid").ToLocalChecked(), Nan::New(friendgameinfo.m_gameID.AppID()));
+  Nan::Set(result, Nan::New("gameserverip").ToLocalChecked(), 
+    Nan::New(utils::uint32ToString(friendgameinfo.m_unGameIP)+":"+utils::uint32ToString(friendgameinfo.m_usGamePort)).ToLocalChecked()
+  );
+  //Nan::Set(result, Nan::New("gameserverport").ToLocalChecked(), Nan::New(friendgameinfo.m_usGamePort));
+  info.GetReturnValue().Set(result);
 }
 
 }  // namespace greenworks
