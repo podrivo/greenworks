@@ -305,36 +305,23 @@ NAN_METHOD(UGCGetUserItems) {
 
 NAN_METHOD(UGCDownloadItem) {
   Nan::HandleScope scope;
-  UGCHandle_t download_file_handle = utils::strToUint64(*(Nan::Utf8String(info[0])));
-
-  info.GetReturnValue().Set(Nan::New(SteamUGC()->DownloadItem(download_file_handle, true)));
-}
-
-NAN_METHOD(UGCGetItemDetails) {
-  Nan::HandleScope scope;
-  if (info.Length() < 2 || !info[0]->IsArray() || !info[1]->IsFunction()) {
+  if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() ||
+      !info[2]->IsFunction()) {
     THROW_BAD_ARGS("Bad arguments");
   }
-
-  v8::Local<v8::Array> files = info[0].As<v8::Array>();
-  std::vector<UGCHandle_t> published_files;
-  for (uint32_t i = 0; i < files->Length(); ++i) {
-    if (!Nan::Get(files, i).ToLocalChecked()->IsString())
-      THROW_BAD_ARGS("Bad arguments");
-    Nan::Utf8String string_array(Nan::Get(files, i).ToLocalChecked());
-    UGCHandle_t published_file_id = utils::strToUint64(*(string_array));
-    published_files.push_back(published_file_id);
-  }
-
-  auto ugc_matching_type = static_cast<EUGCMatchingUGCType>(k_EUGCMatchingUGCType_All);
+  UGCHandle_t download_file_handle = utils::strToUint64(
+      *(Nan::Utf8String(info[0])));
+  std::string download_dir = *(Nan::Utf8String(info[1]));
 
   Nan::Callback* success_callback =
-      new Nan::Callback(info[1].As<v8::Function>());
-  Nan::Callback* error_callback = 
-      new Nan::Callback(info[1].As<v8::Function>());
+      new Nan::Callback(info[2].As<v8::Function>());
+  Nan::Callback* error_callback = nullptr;
 
-  Nan::AsyncQueueWorker(new greenworks::QueryUGCDetailsWorker(
-      success_callback, error_callback, ugc_matching_type , published_files));
+  if (info.Length() > 3 && info[3]->IsFunction())
+    error_callback = new Nan::Callback(info[3].As<v8::Function>());
+
+  Nan::AsyncQueueWorker(new greenworks::DownloadItemWorker(
+      success_callback, error_callback, download_file_handle, download_dir));
   info.GetReturnValue().Set(Nan::Undefined());
 }
 
@@ -409,26 +396,6 @@ NAN_METHOD(UGCUnsubscribe) {
   info.GetReturnValue().Set(Nan::Undefined());
 }
 
-/* CHANGED METHOD */
-NAN_METHOD(UGCSubscribe) {
-  Nan::HandleScope scope;
-  if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
-    THROW_BAD_ARGS("Bad arguments");
-  }
-  PublishedFileId_t subscribed_file_id = utils::strToUint64(
-      *(Nan::Utf8String(info[0])));
-  Nan::Callback* success_callback =
-      new Nan::Callback(info[1].As<v8::Function>());
-  Nan::Callback* error_callback = nullptr;
-
-  if (info.Length() > 2 && info[2]->IsFunction())
-    error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-  Nan::AsyncQueueWorker(new greenworks::SubscribePublishedFileWorker(
-      success_callback, error_callback, subscribed_file_id));
-  info.GetReturnValue().Set(Nan::Undefined());
-}
-
 NAN_METHOD(UGCGetItemState) {
   Nan::HandleScope scope;
   if (info.Length() < 1 || !info[0]->IsString()) {
@@ -463,37 +430,6 @@ NAN_METHOD(UGCGetItemInstallInfo) {
   }
 }
 
-NAN_METHOD(UGCGetItemDownloadInfo) {
-  Nan::HandleScope scope;
-
-  if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
-    THROW_BAD_ARGS("Bad arguments");
-  }
-  PublishedFileId_t published_file_id = utils::strToUint64(
-      *(Nan::Utf8String(info[0])));
-  Nan::Callback* success_callback =
-      new Nan::Callback(info[1].As<v8::Function>());
-  Nan::Callback* error_callback = nullptr;
-
-  if (info.Length() > 2 && info[2]->IsFunction())
-    error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-  Nan::AsyncQueueWorker(new greenworks::GetDownloadInfoWorker(success_callback,
-                                                            error_callback, published_file_id));
-  info.GetReturnValue().Set(Nan::Undefined());
-}
-
-NAN_METHOD(UGCSuspendDownloads) {
-  Nan::HandleScope scope;
-  if (info.Length() < 1 || (!info[0]->IsBoolean())) {
-    THROW_BAD_ARGS("Bad arguments");
-  }
-  bool suspend = Nan::To<bool>(info[0]).FromJust();
-  SteamUGC()->SuspendDownloads(suspend);
-
-  info.GetReturnValue().Set(Nan::Undefined());
-}
-
 void RegisterAPIs(v8::Local<v8::Object> target) {
   InitUgcMatchingTypes(target);
   InitUgcQueryTypes(target);
@@ -506,16 +442,12 @@ void RegisterAPIs(v8::Local<v8::Object> target) {
   SET_FUNCTION("_updatePublishedWorkshopFile", UpdatePublishedWorkshopFile);
   SET_FUNCTION("_ugcGetItems", UGCGetItems);
   SET_FUNCTION("_ugcGetUserItems", UGCGetUserItems);
-  SET_FUNCTION("ugcGetItemDetails", UGCGetItemDetails);
   SET_FUNCTION("ugcDownloadItem", UGCDownloadItem);
   SET_FUNCTION("_ugcSynchronizeItems", UGCSynchronizeItems);
   SET_FUNCTION("ugcShowOverlay", UGCShowOverlay);
   SET_FUNCTION("ugcUnsubscribe", UGCUnsubscribe);
-  SET_FUNCTION("ugcSubscribe", UGCSubscribe);
   SET_FUNCTION("ugcGetItemState", UGCGetItemState);
   SET_FUNCTION("ugcGetItemInstallInfo", UGCGetItemInstallInfo);
-  SET_FUNCTION("ugcGetItemDownloadInfo", UGCGetItemDownloadInfo);
-  SET_FUNCTION("ugcSuspendDownloads", UGCSuspendDownloads);
 }
 
 SteamAPIRegistry::Add X(RegisterAPIs);

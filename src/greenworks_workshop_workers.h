@@ -132,19 +132,6 @@ class QueryUserUGCWorker : public QueryUGCWorker {
   EUserUGCListSortOrder ugc_list_sort_order_;
 };
 
-class QueryUGCDetailsWorker : public QueryUGCWorker {
- public:
-  QueryUGCDetailsWorker(Nan::Callback* success_callback,
-                     Nan::Callback* error_callback,
-                     EUGCMatchingUGCType ugc_matching_type,
-                     const std::vector<UGCHandle_t>& published_files);
-
-  void Execute() override;
-
- private:
-  std::vector<UGCHandle_t> published_files_;
-};
-
 class DownloadItemWorker : public SteamCallbackAsyncWorker {
  public:
   DownloadItemWorker(Nan::Callback* success_callback,
@@ -209,39 +196,6 @@ class UnsubscribePublishedFileWorker : public SteamCallbackAsyncWorker {
 
   CCallResult<UnsubscribePublishedFileWorker,
       RemoteStoragePublishedFileUnsubscribed_t> unsubscribe_call_result_;
-};
-
-class SubscribePublishedFileWorker : public SteamCallbackAsyncWorker {
- public:
-  SubscribePublishedFileWorker(Nan::Callback* success_callback,
-                                 Nan::Callback* error_callback,
-                                 PublishedFileId_t subscribe_file_id);
-
-  void OnSubscribeCompleted(RemoteStoragePublishedFileSubscribed_t* result,
-      bool io_failure);
-
-  void Execute() override;
-
- private:
-  PublishedFileId_t subscribe_file_id_;
-
-  CCallResult<SubscribePublishedFileWorker,
-      RemoteStoragePublishedFileSubscribed_t> subscribe_call_result_;
-};
-
-class GetDownloadInfoWorker : public SteamAsyncWorker {
- public:
-  GetDownloadInfoWorker(Nan::Callback* success_callback,
-      Nan::Callback* error_callback,
-      PublishedFileId_t published_file_id);
-
-  void Execute() override;
-  void HandleOKCallback() override;
-
- private:
-  PublishedFileId_t published_file_id_;
-  uint64 bytes_downloaded_;
-  uint64 bytes_total_;
 };
 
 }  // namespace greenworks

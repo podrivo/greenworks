@@ -4,32 +4,23 @@
 
 // The source code can be found in https://github.com/greenheartgames/greenworks
 var fs = require('fs');
-var reqlib = require('app-root-path').require;
 
 var greenworks;
 
-
-try {
-  greenworks = reqlib('/deps/greenworks/lib/greenworks-win64.node');
-} catch(e) {
-  greenworks = require('@greenworks/lib/greenworks-win64');
-  //throw new Error(e);
-}
-
-/*if (process.platform == 'darwin') {
+if (process.platform == 'darwin') {
   if (process.arch == 'x64')
-    greenworks = require('./lib/greenworks-osx64');
+    greenworks = require(__dirname + '/lib/greenworks-osx64');
 } else if (process.platform == 'win32') {
   if (process.arch == 'x64')
-    greenworks = require('./lib/greenworks-win64');
+    greenworks = require(__dirname + '/lib/greenworks-win64');
   else if (process.arch == 'ia32')
-    greenworks = require('./lib/greenworks-win32');
+    greenworks = require(__dirname + '/lib/greenworks-win32');
 } else if (process.platform == 'linux') {
   if (process.arch == 'x64')
-    greenworks = require('./lib/greenworks-linux64');
+    greenworks = require(__dirname + '/lib/greenworks-linux64');
   else if (process.arch == 'ia32')
-    greenworks = require('./lib/greenworks-linux32');
-}*/
+    greenworks = require(__dirname + '/lib/greenworks-linux32');
+}
 
 function error_process(err, error_callback) {
   if (err && error_callback)
@@ -191,7 +182,8 @@ greenworks.Utils.move = function(source_dir, target_dir, success_callback,
 
 greenworks.init = function() {
   if (this.initAPI()) return true;
-  if (!this.isSteamRunning()) return false;
+  if (!this.isSteamRunning())
+    throw new Error("Steam initialization failed. Steam is not running.");
   var appId;
   try {
     appId = fs.readFileSync('steam_appid.txt', 'utf8');
@@ -220,5 +212,4 @@ greenworks._steam_events.on = function () {
 
 process.versions['greenworks'] = greenworks._version;
 
-//module.exports = greenworks;
-export default greenworks;
+module.exports = greenworks;

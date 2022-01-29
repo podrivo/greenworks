@@ -52,7 +52,8 @@ SteamClient::SteamClient()
       OnLobbyEnter_(this, &SteamClient::OnLobbyEnter),
       OnLobbyInvite_(this, &SteamClient::OnLobbyInvite),
       OnGameLobbyJoinRequested_(this, &SteamClient::OnGameLobbyJoinRequested),
-      item_downloaded_(this, &SteamClient::OnItemDownloaded) {}
+      OnGameRichPresenceJoinRequested_(this, &SteamClient::OnGameRichPresenceJoinRequested),
+      OnNewUrlLaunchParameters_(this, &SteamClient::OnNewUrlLaunchParameters) {}
 
 SteamClient::~SteamClient() {
   for (size_t i = 0; i < observer_list_.size(); ++i) {
@@ -189,9 +190,17 @@ void SteamClient::OnGameLobbyJoinRequested(GameLobbyJoinRequested_t *callback) {
   }
 }
 
-void SteamClient::OnItemDownloaded(DownloadItemResult_t *callback) {
+void SteamClient::OnGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t *callback) {
   for (size_t i = 0; i < observer_list_.size(); ++i) {
-    observer_list_[i]->OnItemDownloaded(callback->m_unAppID, callback->m_nPublishedFileId, callback->m_eResult == k_EResultOK);
+    observer_list_[i]->OnGameRichPresenceJoinRequested(
+      callback->m_steamIDFriend.ConvertToUint64(),
+      callback->m_rgchConnect);
+  }
+}
+
+void SteamClient::OnNewUrlLaunchParameters(NewUrlLaunchParameters_t *callback) {
+  for (size_t i = 0; i < observer_list_.size(); ++i) {
+    observer_list_[i]->OnNewUrlLaunchParameters();
   }
 }
 
